@@ -1,0 +1,161 @@
+---
+title: "Movies Dataset Analysis"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(highcharter)
+library(htmltools)
+library(gtable)
+library(viridis)
+library(reactable)
+```
+```{r}
+#Importing dataset
+df=read_csv("C:/Users/HP/Downloads/moviesdataset.csv",show_col_types = FALSE)
+View(df)
+
+```
+
+```{r}
+#Removing columns
+df <- df[, !colnames(df) %in% c("link", "cast_id","user_id","user_name","review_id","director_id","writer_id")] 
+View(df)
+```
+
+Column {.tabset .tabset-fade data-width=450}
+-----------------------------------------------------------------------
+
+### Most popular Genre based on number of movies 
+
+```{r}
+#Colors
+custom_colors <- viridis::mako(n=15)
+df %>% 
+  group_by(genre) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count)) %>% 
+  head(15) %>% 
+  hchart('column', hcaes(x = genre, y = count, color = custom_colors)) %>% 
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Number of movies: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Most Popular Genre', style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By number of movies', style = list(fontSize = '16px')) %>%
+  hc_xAxis(title = list(text = 'Genre')) %>% 
+  hc_yAxis(title = list(text = 'Number of Movies'))
+
+  
+```
+
+### Topmost years based on count of movies released in it
+
+```{r}
+custom_colors <- viridis::plasma(n=15)
+df %>% 
+  group_by(year) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count)) %>% 
+  head(15) %>% 
+  hchart('line', hcaes(x = year, y = count, color = custom_colors)) %>% 
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Number of Movies: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Most Popular Years for Movies', style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By number of movies released', style = list(fontSize = '16px')) %>%
+  hc_xAxis(title = list(text = 'Year of release')) %>% 
+  hc_yAxis(title = list(text = 'Number of Movies'))
+
+```
+
+
+Column {.tabset .tabset-fade data-width=350}
+-----------------------------------------------------------------------
+
+###  Top 10 categories of certification as per number of movies{.no-padding}
+
+```{r}
+#Colors
+custom_colors<-viridis::mako(n=10)
+df %>%
+  group_by(certificate) %>%
+  summarise(count=n()) %>%
+  head(10) %>%
+  hchart('pie',hcaes(x=certificate,y=count,color=custom_colors)) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat='<b> Proportion: </b> {point.percentage:,.2f}%') %>%
+hc_title(text='Top 10 categories of rating certifications',style=list(fontSize='15px',fontWeight='bold')) 
+```
+
+### Top 3 Movie Durations: Less Than 1 Hour or More Than 3 Hours
+```{r}
+custom_colors <- viridis::plasma(n = 3)
+
+df %>%
+  filter(as.numeric(gsub("h|m", "", duration)) < 60 | as.numeric(gsub("h|m", "", duration)) > 180) %>%
+  group_by(duration) %>%
+  summarise(count = n()) %>%
+  head(15) %>%
+  hchart('pie', hcaes(x = duration, y = count, color = custom_colors)) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat = '<b> Proportion: </b> {point.percentage:,.2f}%') %>%
+  hc_title(text = 'Top 3 Movie Durations: Less Than 1 Hour or More Than 3 Hours', style = list(fontSize = '15px', fontWeight = 'bold'))
+
+
+```
+
+-----------------------------------------------------------------------
+### Top Rated Movies:Genre and Director
+
+```{r}
+
+
+df1 <- df %>%
+  filter(imbd_rating >= 7.0) %>%
+  arrange(desc(title)) %>%
+  select(title, director_name, genre) %>%
+  head(10)
+
+# Table with custom styling and headers
+table <- reactable(df1, fullWidth = FALSE,
+          bordered = TRUE,
+          defaultColDef = colDef(minWidth = 120),
+          highlight = TRUE,
+          striped = TRUE,
+          defaultPageSize = 10,
+          columns = list(
+            title = colDef(
+              minWidth = 200,
+              headerStyle = list(background = "lightblue", fontWeight = "bold", fontFamily = "Arial"),
+              cell = function(value) {
+                div(style = "font-weight: bold; font-family: Arial;", value)
+              },
+              header = "Movie Title"
+            ),
+            director_name = colDef(
+              minWidth = 150,
+              headerStyle = list(background = "lightblue", fontWeight = "bold", fontFamily = "Arial"),
+              header = "Director Name"
+            ),
+            genre = colDef(
+              minWidth = 150,
+              headerStyle = list(background = "lightblue", fontWeight = "bold", fontFamily = "Arial"),
+              header = "Genre"
+            )
+          ))
+
+# Create a title and subtitle
+title <- tags$h3("Top Rated Movies")
+subtitle <- tags$h4("Movies with an IMDb rating of 7.0 or higher")
+
+# Combine the title, subtitle, and table into a single HTML element
+htmltools::tagList(title, subtitle, table)
+
+```
+
+
+
+
